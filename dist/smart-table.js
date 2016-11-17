@@ -1,7 +1,3 @@
-/** 
-* @version 2.1.8
-* @license MIT
-*/
 (function (ng, undefined){
     'use strict';
 
@@ -443,6 +439,7 @@ ng.module('smart-table')
           var end;
           var i;
           var prevPage = scope.currentPage;
+          scope.stItemsByPage = paginationState.number;
           scope.totalItemCount = paginationState.totalItemCount;
           scope.currentPage = Math.floor(paginationState.start / paginationState.number) + 1;
 
@@ -472,11 +469,11 @@ ng.module('smart-table')
         }, redraw, true);
 
         //scope --> table state  (--> view)
-        scope.$watch('stItemsByPage', function (newValue, oldValue) {
-          if (newValue !== oldValue) {
-            scope.selectPage(1);
-          }
-        });
+        // scope.$watch('stItemsByPage', function (newValue, oldValue) {
+        //   if (newValue !== oldValue) {
+        //     scope.selectPage(1);
+        //   }
+        // });
 
         scope.$watch('stDisplayedPages', redraw);
 
@@ -531,4 +528,36 @@ ng.module('smart-table')
     };
   }]);
 
+ng.module('smart-table')
+  .directive('stPersist', ['$parse', function ($parse) {
+  return {
+    require: '^stTable',
+    link: function (scope, element, attr, ctrl) {
+      var nameSpace = attr.stPersist;
+      
+      var default_key = attr.stPersistDefault;
+      var default_state = $parse(default_key)(scope);
+
+      //fetch the table state when the directive is loaded
+      var tableState = ctrl.tableState();
+      if (localStorage.getItem(nameSpace)) {
+        var savedState = JSON.parse(localStorage.getItem(nameSpace));
+        angular.extend(tableState, savedState);
+        ctrl.pipe();
+      } else if (default_state) {
+        angular.extend(tableState, default_state);
+        ctrl.pipe();
+      }
+
+      //save the table state every time it changes
+      scope.$watch(function () {
+        return ctrl.tableState();
+      }, function (newValue, oldValue) {
+        if (newValue !== oldValue) {
+          localStorage.setItem(nameSpace, JSON.stringify(newValue));
+        }
+      }, true);
+    }
+  };
+}]);
 })(angular);
